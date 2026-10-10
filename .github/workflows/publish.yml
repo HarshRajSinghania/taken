@@ -203,6 +203,7 @@ jobs:
           pyinstaller --onefile --console --name taken taken/__main__.py
           pyinstaller --onefile --console --name taken-mcp taken/mcp_server.py
       - name: Smoke-test the executables
+        shell: bash
         run: |
           dist/taken.exe --version
           dist/taken-mcp.exe < /dev/null || true
