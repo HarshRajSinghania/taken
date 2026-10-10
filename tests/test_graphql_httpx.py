@@ -27,7 +27,7 @@ def no_cache(monkeypatch):
     monkeypatch.setattr(checks, "_CACHE_ENABLED", False)
 
 
-@pytest.fixture()
+@pytest.fixture
 def clean_env(monkeypatch):
     """Scrub env, module state, and optional helpers per test."""
     for var in (
