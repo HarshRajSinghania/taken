@@ -17,6 +17,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-10
+
+### Added
+- Opt-in in-process httpx transport for GitHub API calls, replacing one
+  subprocess per call, with ETag conditional requests and the GraphQL
+  fetch path wired through it (#437, #439, #441).
+
 ### Fixed
 - The opt-in httpx REST transport now preserves JSON array responses and
   their ETags instead of coercing arrays into dictionaries (#449).
