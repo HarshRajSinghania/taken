@@ -208,6 +208,7 @@ jobs:
           dist/taken.exe --version
           dist/taken-mcp.exe < /dev/null || true
       - name: Zip the executables
+        shell: bash
         run: |
           python - <<'EOF'
           import os, zipfile
@@ -219,6 +220,7 @@ jobs:
           print("wrote", name)
           EOF
       - name: Attach Windows zip to GitHub release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
