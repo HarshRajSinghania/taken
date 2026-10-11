@@ -17,6 +17,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-11
+
+### Fixed
+- The Windows smoke-test step in the publish workflow now runs under bash, so the `taken-mcp.exe` stdin redirect no longer fails with a PowerShell syntax error and the Windows executable ships with the release (#458).
+
 ## [0.9.0] - 2026-10-10
 
 ### Added
