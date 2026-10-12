@@ -6,15 +6,15 @@
   "files": [
     {
       "file": "taken/checks.py",
-      "cc": 393,
-      "commits": 56,
-      "hotspot": 22008
+      "cc": 394,
+      "commits": 57,
+      "hotspot": 22458
     },
     {
       "file": "taken/cli.py",
       "cc": 139,
-      "commits": 41,
-      "hotspot": 5699
+      "commits": 42,
+      "hotspot": 5838
     },
     {
       "file": "taken/graphql.py",
