@@ -30,7 +30,7 @@ except ImportError:  # pydantic ships with the `mcp` dependency
 
 
 from taken import __version__, budget, checks, discover, graphql
-from taken.verdict import decide, GO, CAUTION, TAKEN
+from taken.verdict import CAUTION, GO, TAKEN, decide
 
 _ERROR_PAYLOAD_DOCS = """Error payloads carry `error` plus `error_code`: RateLimitError ->
 `rate_limited`, NotFoundError -> `not_found`, HTTP 401/CLI authentication
