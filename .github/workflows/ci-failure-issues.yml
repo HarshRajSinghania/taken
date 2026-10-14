@@ -1,0 +1,161 @@
+name: CI failure issues
+
+# Watch the workflows that gate pull requests and releases. When one of
+# them fails, open one issue per pull request (or per workflow on main)
+# and address it to the author of the pull request with a single mention.
+# Nobody is assigned. Repeat failures update the same issue as comments,
+# without a new mention. A later success adds a short comment that the
+# workflow passed again; a human closes the issue.
+#
+# This workflow runs on workflow_run, so it executes in the base
+# repository context with the permissions below, including for fork pull
+# requests. It never checks out or runs code from the watched run.
+
+on:
+  workflow_run:
+    workflows: ["CI", "CodeQL", "Docs", "SonarQube", "publish"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: ci-failure-issues-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    if: github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: File or update the failure issue
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const workflowName = run.name;
+            const conclusion = run.conclusion;
+            const shortSha = (run.head_sha || "").slice(0, 7);
+            const slug = (s) => (s || "main").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+            // Name the failed jobs and steps from the run's own job data.
+            let failed = [];
+            if (conclusion === "failure") {
+              const jobs = await github.paginate(
+                github.rest.actions.listJobsForWorkflowRun,
+                { owner, repo, run_id: run.id, per_page: 100 }
+              );
+              for (const job of jobs) {
+                if (job.conclusion !== "failure") continue;
+                const steps = (job.steps || [])
+                  .filter((s) => s.conclusion === "failure")
+                  .map((s) => s.name);
+                failed.push(steps.length ? `${job.name} / ${steps.join(", ")}` : job.name);
+              }
+              if (!failed.length) failed = ["unknown step"];
+            }
+
+            // Resolve the pull request for this run: the payload first,
+            // then the commit lookup (the payload list is empty for some
+            // fork runs).
+            let pr = null;
+            const listed = run.pull_requests || [];
+            if (listed.length) {
+              const full = await github.rest.pulls.get({
+                owner, repo, pull_number: listed[0].number,
+              });
+              pr = full.data;
+            } else if (run.head_sha) {
+              const assoc = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                owner, repo, commit_sha: run.head_sha,
+              });
+              pr = assoc.data.find((p) => p.state === "open") || assoc.data[0] || null;
+            }
+
+            // One issue per pull request per workflow, or per workflow on
+            // main. The marker in the body is the dedupe key.
+            const scope = pr ? `pr-${pr.number}` : `branch-${slug(run.head_branch)}`;
+            const key = `${scope}-${slug(workflowName)}`;
+            const marker = `<!-- ci-failure-key: ${key} -->`;
+
+            const humanMention = (user) =>
+              user && user.type === "User" ? `@${user.login}` : null;
+            const mention = pr
+              ? humanMention(pr.user)
+              : humanMention(run.actor) || humanMention(run.triggering_actor);
+
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: "open", per_page: 100,
+            });
+            const existing = open.find(
+              (i) => !i.pull_request && (i.body || "").includes(marker)
+            );
+
+            if (conclusion === "success") {
+              if (existing) {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: existing.number,
+                  body: `${workflowName} passed again in [this run](${run.html_url}). This failure looks resolved.`,
+                });
+              }
+              return;
+            }
+
+            const where = pr
+              ? `pull request [#${pr.number}](${pr.html_url})`
+              : `branch \`${run.head_branch}\``;
+            const detail = [
+              `Workflow: ${workflowName}`,
+              `Where: ${where}`,
+              `Commit: ${shortSha}`,
+              `Run: ${run.html_url}`,
+              `Failed steps: ${failed.join("; ")}`,
+            ].join("\n");
+
+            if (existing) {
+              // No mention here: the author was notified once, on create.
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: existing.number,
+                body: `Failed again.\n\n${detail}`,
+              });
+              return;
+            }
+
+            try {
+              await github.rest.issues.createLabel({
+                owner, repo, name: "ci-failure", color: "b60205",
+                description: "Automatic issue for a failed workflow run",
+              });
+            } catch (e) {
+              // The label already exists, or it cannot be created here.
+              // The marker in the body still carries dedupe on its own.
+            }
+
+            const cleanTitle = (pr ? pr.title : "").replace(/[\r\n]+/g, " ").trim().slice(0, 72);
+            const title = pr
+              ? `CI failure: ${workflowName} on PR #${pr.number}${cleanTitle ? `: ${cleanTitle}` : ""}`
+              : `CI failure: ${workflowName} on ${run.head_branch}`;
+            const intro = mention
+              ? `${mention}, the checks on this work failed.`
+              : "A watched workflow failed.";
+            const body = [
+              intro,
+              "",
+              detail,
+              "",
+              "Repeat failures are added to this issue as comments. Nobody is assigned to this issue.",
+              "",
+              marker,
+            ].join("\n");
+            try {
+              await github.rest.issues.create({
+                owner, repo, title, body, labels: ["ci-failure"],
+              });
+            } catch (e) {
+              await github.rest.issues.create({ owner, repo, title, body });
+            }

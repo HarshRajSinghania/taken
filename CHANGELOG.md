@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- A watcher workflow opens one deduplicated `ci-failure` issue when CI, CodeQL, Docs, SonarQube, or publish fails, addressed to the pull request author with a single mention. Nobody is assigned. Repeat failures update the same issue as comments, and a later success comments that the workflow passed again.
+
 ### Fixed
 - In persistent GraphQL mode, the per-thread sessions of CLI batch, discover and MCP `scan_repo` are now closed at exit along with the process-wide one, instead of leaving their keep-alive connections and tokens to garbage collection (#450).
 
