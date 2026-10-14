@@ -17,11 +17,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-10-13
+
 ### Added
 - A watcher workflow opens one deduplicated `ci-failure` issue when CI, CodeQL, Docs, SonarQube, or publish fails, addressed to the pull request author with a single mention. Nobody is assigned. Repeat failures update the same issue as comments, and a later success comments that the workflow passed again.
 
 ### Fixed
 - In persistent GraphQL mode, the per-thread sessions of CLI batch, discover and MCP `scan_repo` are now closed at exit along with the process-wide one, instead of leaving their keep-alive connections and tokens to garbage collection (#450).
+- The publish workflow now builds the Windows executable archive and attaches it to the release correctly: the archive and upload steps of the Windows job run under bash (#460).
 
 ### Changed
 - `--clear-cache` now reads the cache location from a public `checks.cache_dir()` instead of reaching into the private `checks._cache_dir()`. No behavior change (#383).
