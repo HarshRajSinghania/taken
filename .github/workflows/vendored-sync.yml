@@ -1,10 +1,11 @@
 name: Vendored console copies auto-sync
 
 # docs/console/py/ carries byte-identical vendored copies of taken/checks.py,
-# taken/verdict.py and taken/budget.py, enforced by the docs-sync CI job.
+# taken/verdict.py, taken/budget.py and taken/transport.py, enforced by the
+# docs-sync CI job.
 # In-house branches regularly change taken/*.py and forget the copies, so the
 # docs-sync check fails after the fact. This workflow prevents that failure:
-# on PR activity it re-copies the three files and pushes a fix commit to the
+# on PR activity it re-copies the four files and pushes a fix commit to the
 # PR branch when (and only when) they drifted. The docs-sync job stays as the
 # backstop; this workflow just removes the human-memory step.
 #
@@ -22,6 +23,7 @@ on:
       - "taken/checks.py"
       - "taken/verdict.py"
       - "taken/budget.py"
+      - "taken/transport.py"
 
 # Serialise overlapping runs on the same PR: a stale run pushing after a
 # newer one would hit a non-fast-forward rejection and go red for no reason.
@@ -53,7 +55,7 @@ jobs:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           drift=0
-          for pair in "taken/checks.py docs/console/py/checks.py" "taken/verdict.py docs/console/py/verdict.py" "taken/budget.py docs/console/py/budget.py"; do
+          for pair in "taken/checks.py docs/console/py/checks.py" "taken/verdict.py docs/console/py/verdict.py" "taken/budget.py docs/console/py/budget.py" "taken/transport.py docs/console/py/transport.py"; do
             set -- $pair
             if ! diff -q "$1" "$2" > /dev/null; then
               echo "$2 is out of sync with $1, re-copying"
@@ -67,6 +69,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/console/py/checks.py docs/console/py/verdict.py docs/console/py/budget.py
+          git add docs/console/py/checks.py docs/console/py/verdict.py docs/console/py/budget.py docs/console/py/transport.py
           git commit -m "docs: sync vendored console copies"
           git push origin "HEAD:${HEAD_REF}"
