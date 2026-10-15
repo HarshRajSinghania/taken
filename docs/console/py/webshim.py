@@ -7,8 +7,8 @@ with a synchronous XMLHttpRequest against api.github.com. Every check,
 every heuristic, every verdict rule is the real code.
 
 Notes for maintainers:
-- checks.py / verdict.py / budget.py in this directory are byte-copies of
-  main at the time of the last refresh (see git log for
+- checks.py / verdict.py / budget.py / transport.py in this directory are
+  byte-copies of main at the time of the last refresh (see git log for
   docs/console/py/checks.py). Re-copy them when the pipeline changes;
   verify with diff.
 - MAX_SCAN_PAGES is capped at 1 here to respect GitHub's unauthenticated
@@ -19,10 +19,12 @@ Notes for maintainers:
   last 7 days +2, repo pushed in last 7 days +1).
 - The file cache is disabled; there is no persistent disk in the page.
 - checks.py is a byte-copy of taken/checks.py, so it does
-  `from taken import budget` and `from taken.verdict import ...`. There is no
-  taken package in the browser; this module synthesizes one (below) whose
-  path is this directory, so taken.budget and taken.verdict resolve to the
-  vendored budget.py / verdict.py.
+  `from taken import budget, transport` and
+  `from taken.verdict import ...`. There is no taken package in the
+  browser; this module synthesizes one (below) whose path is this
+  directory, so taken.budget and taken.transport resolve to the vendored
+  budget.py / transport.py. The synthesized package also carries
+  __version__: transport.py reads it at import time.
 """
 
 import importlib
@@ -35,14 +37,20 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 # checks.py is a byte-copy of taken/checks.py, so it does
-# `from taken import budget` and `from taken.verdict import ...`, but there is
-# no taken package in the Pyodide filesystem (only these flat vendored files).
-# Synthesize a taken package pointing at this directory before loading checks,
-# so taken.budget / taken.verdict resolve to the vendored budget.py /
-# verdict.py. importlib is used instead of plain imports because the loading
-# must happen after this block (ruff E402).
+# `from taken import budget, transport` and
+# `from taken.verdict import ...`, but there is no taken package in the
+# Pyodide filesystem (only these flat vendored files). Synthesize a taken
+# package pointing at this directory before loading checks, so taken.budget /
+# taken.transport / taken.verdict resolve to the vendored budget.py /
+# transport.py / verdict.py. importlib is used instead of plain imports
+# because the loading must happen after this block (ruff E402).
 _taken_pkg = types.ModuleType("taken")
 _taken_pkg.__path__ = [os.path.dirname(os.path.abspath(__file__))]
+# transport.py does `from taken import __version__` at import time. The real
+# package reads the version from the installed distribution metadata; the
+# synthesized package must carry the value directly. Keep it in sync with
+# pyproject.toml, like the `taken --version` string below.
+_taken_pkg.__version__ = "0.9.2"
 sys.modules["taken"] = _taken_pkg
 
 checks = importlib.import_module("checks")
