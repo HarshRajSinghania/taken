@@ -4,21 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+Unreleased changes are recorded as fragment files in the `changes/`
+directory. See `changes/README.md` for the format. Release builds assemble
+the fragments into this file.
 
-### Removed
-- The unused `checks._pace_search()` wrapper is gone; search pacing is
-  `checks._wait_search_pace()` under the search lock, and its behavior
-  stays pinned by `tests/test_rate_limit.py` (#329).
-
-### Fixed
-- The docs-sync CI check now validates the console's synthesized package
-  version as well as its `taken --version` output, catching a stale transport
-  User-Agent version when only the displayed version is updated (#479).
-- The docs console starts again. docs/console/py/ now carries the vendored
-  transport.py copy that checks.py imports, and webshim.py sets __version__
-  on the synthesized taken package. The docs-sync CI job and the
-  vendored-sync workflow now cover transport.py.
+<!-- towncrier release notes start -->
 
 ## [0.9.2] - 2026-10-13
 
