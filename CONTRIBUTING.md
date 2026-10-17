@@ -43,6 +43,20 @@ Run these three commands. CI runs the same ones:
 - `uv run pytest`
 - `uv run --frozen mypy taken/`
 
+## Changelog fragments
+
+Do not edit `CHANGELOG.md` to describe a change. Add one small file to
+`changes/` instead. Name the file `<issue>.<type>.md`, for example
+`123.fixed.md`. Use the issue the change closes, or the pull request
+number when no issue exists. The type is one of `added`, `changed`,
+`deprecated`, `removed`, `fixed`, or `security`, matching the sections
+in `CHANGELOG.md`.
+
+Write the entry text only, in the style of the existing entries. Do not
+add the `(#123)` reference; the release build appends the reference from
+the file name. See `changes/README.md` for the full rules, including a
+second fragment for one issue and a change with no issue number.
+
 ## Two gotchas
 
 - **Vendored docs copies.** `docs/console/py/checks.py`, `docs/console/py/verdict.py`,

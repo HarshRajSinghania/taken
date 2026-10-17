@@ -12,4 +12,4 @@ How did you check this works? (commands run, output seen)
 - [ ] `uv run ruff format --check` passes
 - [ ] `uv run pytest` passes
 - [ ] README updated if behavior changed
-- [ ] CHANGELOG.md updated
+- [ ] Changelog fragment added in `changes/` (or the change is not user-facing)
