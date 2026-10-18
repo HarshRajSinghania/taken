@@ -25,8 +25,8 @@
     {
       "file": "taken/discover.py",
       "cc": 117,
-      "commits": 28,
-      "hotspot": 3276
+      "commits": 29,
+      "hotspot": 3393
     },
     {
       "file": "taken/verdict.py",
