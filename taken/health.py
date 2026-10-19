@@ -370,9 +370,10 @@ def repo_health(owner, repo, options=None, me=None, now=None):
     zero comments skip the fetch. A TakenError on one issue's comments
     fails that issue closed without aborting the report, the way
     _verify_candidate does per candidate. When the API budget is nearly
-    spent the comment loop stops early and the report says which issues
-    were skipped. `me` excludes the invoker's own comments from the
-    claimant scan; `now` is a test override for the reference time.
+    spent, the loop skips each fetch it still owes and the report says
+    which issues were skipped; a zero-comment issue owes no fetch, so
+    the budget never skips it. `me` excludes the invoker's own comments
+    from the claimant scan; `now` is a test override for the reference time.
     """
     options = options or HealthOptions()
     now = now or datetime.now(timezone.utc)
@@ -384,14 +385,15 @@ def repo_health(owner, repo, options=None, me=None, now=None):
     )
     for item in issues:
         number = item["number"]
-        if _comment_budget_spent():
+        if not item.get("comments"):
+            # The listing already says zero comments: no fetch needed,
+            # so a spent budget must not skip this issue either.
+            events = []
+        elif _comment_budget_spent():
             # Degrade gracefully: skip the remaining comment fetches but
             # keep every section the listing alone can feed.
             report.comment_fetch_skipped.append(number)
             continue
-        if not item.get("comments"):
-            # The listing already says zero comments: no fetch needed.
-            events = []
         else:
             try:
                 comments, _truncated = checks.fetch_comments(owner, repo, number)
