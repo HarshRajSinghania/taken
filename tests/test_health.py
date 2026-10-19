@@ -437,6 +437,39 @@ def test_budget_exhaustion_skips_comment_fetches(monkeypatch):
     assert data["comment_fetch_skipped"] == [1, 2]
 
 
+def test_budget_exhaustion_still_processes_zero_comment_issues(monkeypatch):
+    """A spent budget skips fetches, never issues the listing already answers."""
+    issues = (
+        make_issue(7, 20, comment_count=0),
+        make_issue(8, 20, comment_count=2),
+    )
+
+    def no_comments_allowed(endpoint, params=None):
+        if endpoint.endswith("/comments"):
+            raise AssertionError("budget guard must skip comment fetches")
+        return make_gh(issues)(endpoint, params)
+
+    monkeypatch.setattr(checks, "gh_api", no_comments_allowed)
+    monkeypatch.setattr(health, "_api_calls_used", lambda: 60)
+    report = run(issues)
+    # #7 shows zero comments in the listing, so it is judged from the
+    # listing alone: untriaged, and never counted as skipped. #8 would
+    # need a fetch, so the spent budget still skips it (fail-closed).
+    assert report.comment_fetch_skipped == [8]
+    assert report.comment_fetch_errors == []
+    assert [e.number for e in report.untriaged] == [7]
+    assert report.untriaged[0].age_days == 20
+    assert report.waiting_claims == []
+    assert report.quiet_claims == []
+    text = health.format_health_human(report)
+    assert "1 untriaged" in text
+    assert "API budget nearly spent; skipped comment fetches for 1 issue(s)" in text
+    data = health.health_to_dict(report)
+    assert data["comment_fetch_skipped"] == [8]
+    assert [e["number"] for e in data["untriaged"]] == [7]
+    assert data["summary"]["untriaged"] == 1
+
+
 def test_budget_guard_ignores_cache_warm_runs(monkeypatch):
     """The guard counts real calls, so it stays quiet well under budget."""
     issues = (make_issue(1, 20, comment_count=1),)
